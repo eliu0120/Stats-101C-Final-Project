@@ -1,0 +1,119 @@
+---
+title: "101C Final Project"
+author: "Anthony Rio"
+date: "2023-11-27"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## 101C Final Project
+
+This is a dataset for binary sentiment classification containing
+substantially more data than previous benchmark datasets. 25,000
+highly polar movie reviews for training and 25,000 for testing.
+Classification task.
+Challenge: (1) Transforming Text into Numerical Data; (2)
+High-dimensional Feature
+
+```{r}
+#load in data
+lexicon_p <- read.delim("positive-words.txt")
+lexicon_p <- lexicon_p[-(1:33), 1]
+
+lexicon_n <- read.delim("negative-words.txt")
+lexicon_n <- lexicon_n[-(1:34), 1]
+data <- read.csv("IMDB Dataset.csv")
+head(data)
+
+# count the number of words in a string
+count_words <- function(text) {
+  words <- strsplit(text, "\\s+")[[1]]
+  length(words)
+}
+
+
+# count the number of positive words in a string
+count_positive_words <- function(text) {
+  words <- strsplit(text, "\\s+")[[1]]
+  positive_words <- words[words %in% lexicon_p]
+  length(positive_words)
+}
+
+
+# count the number of positive words in a string
+count_negative_words <- function(text) {
+  words <- strsplit(text, "\\s+")[[1]]
+  negative_words <- words[words %in% lexicon_n]
+  length(negative_words)
+}
+
+
+n <- apply(as.data.frame(data[ , 1]), 1, count_words)
+positive_words <- apply(as.data.frame(data[ , 1]), 1, count_positive_words)
+negative_words <- apply(as.data.frame(data[ , 1]), 1, count_negative_words)
+
+# output <- data.frame("Positive_Rate" = positive_words / n, "Negative_Rate" = negative_words / n)
+
+output <- data.frame("Positive_Rate" = log(n / positive_words), "Negative_Rate" = log(n / negative_words))
+#handle Inf values amnd make them 10
+output$Positive_Rate[output$Positive_Rate == Inf] <- 10
+output$Negative_Rate[output$Negative_Rate == Inf] <- 10
+
+
+# supposed to use log(n / positive_words) and log(n / negative_words) but the there will be Inf values which we need to handle
+```
+
+### Train Test Split
+```{r}
+samp <- 1:25000
+train <- data.frame("sentiment" = ifelse(data$sentiment[samp] == "positive", 1, 0), "pos" = output[samp, 1], "neg" = output[samp, 2])
+x_test <- data.frame("pos" = output[-samp, 1], "neg" = output[-samp, 2])
+y_test <- data.frame("sentiment" = ifelse(data$sentiment[-samp] == "positive", 1, 0))
+```
+
+### Different Methods
+
+```{r}
+# Logistic
+log_model_1 <- glm(sentiment ~ pos + neg, train, family = "binomial")
+# sum(train$sentiment == 1 | train$sentiment == 0)
+y_preds <- as.numeric(predict(log_model_1, x_test, type = "response") > 0.5)
+
+#test accuracy
+mean(y_preds == y_test)
+```
+
+
+```{r}
+# Logistic with increased number of features (feature engineering)
+newtrain <- as.data.frame(cbind(poly(train[ , 2], 5), poly(train[ , 3], 5), train[ , 1]))
+colnames(newtrain)[6:10] <- 6:10
+newtest <- as.data.frame(cbind(poly(x_test[ , 1], 5), poly(x_test[ , 2], 5), y_test))
+colnames(newtest)[6:10] <- 6:10
+log_model_2 <- glm(V11 ~ ., family = "binomial", newtrain)
+y_preds <- as.numeric(predict(log_model_2, newtest, type = "response") > 0.5)
+
+#test accuracy
+mean(y_preds == y_test)
+```
+
+
+```{r}
+library(class)
+#KNN
+
+#need to finish this part 
+
+# m.knn <- knn(train[ , 2:3], x_test[ , 1:2], train[ , 1], k = 1) 
+# mean((as.numeric(m.knn) - 1) == y_test)
+
+# table(m.knn, test[ , 16])
+
+
+```
+
+
+
