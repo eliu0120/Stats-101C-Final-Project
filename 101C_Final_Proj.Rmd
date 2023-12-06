@@ -20,12 +20,12 @@ High-dimensional Feature
 
 ```{r}
 #load in data
-lexicon_p <- read.delim("positive-words.txt")
+lexicon_p <- read.delim("../Datasets/positive-words.txt")
 lexicon_p <- lexicon_p[-(1:33), 1]
 
-lexicon_n <- read.delim("negative-words.txt")
+lexicon_n <- read.delim("../Datasets/negative-words.txt")
 lexicon_n <- lexicon_n[-(1:34), 1]
-data <- read.csv("IMDB Dataset.csv")
+data <- read.csv("../Datasets/IMDB_Dataset.csv")
 head(data)
 
 # count the number of words in a string
