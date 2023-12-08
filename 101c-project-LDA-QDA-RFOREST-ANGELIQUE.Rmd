@@ -1,0 +1,97 @@
+---
+title: "Stats 101C project"
+author: "Angelique Rubio"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(readr)
+library(MASS)
+library(pROC)
+raw_data <- read_csv("IMDB Dataset.csv") # read in raw data of reviews
+
+transformed_data <- read_csv("transformed_data.csv") # read in numeric data of reviews converted into numerical data through tfidf
+
+data <- cbind(transformed_data[, -1], raw_data[, 2]) # add sentiment classifications to transformed data
+
+names(data) <- c(paste0("V", 1:1300), "sentiment") #add names to components to make it easier to manipulate
+
+data$"sentiment" <- as.numeric(as.factor(data$"sentiment") == "positive") #rename sentiment component
+data <- as.data.frame(data) # just to make sure data is in proper format
+
+i_train <- sample(nrow(data), 25000, replace = F) #indices to subset 
+data_train <- data[i_train, ] #subset training data 50/50
+data_test <- data[-i_train, ] #subset testing data
+
+lda_model <- lda(sentiment ~ ., data = data_train) #lda model
+pred_lda_test <- predict(lda_model, data_test[, -1301]) #predictions from lda model
+confusion_m_lda <- table("Reference" = data_test[, 1301], "Predicted" = pred_lda_test$class) #compare predictions to true classifications
+
+accuracy_lda <- sum(diag(confusion_m_lda)) / sum(confusion_m_lda)  # calculate accuracy
+percentage_accuracy <- accuracy_lda * 100
+
+print(paste("Percentage Accuracy for LDA:", percentage_accuracy, "%")) #output percentage accuracy
+
+qda_model <- qda(sentiment ~ ., data = data_train) #qda model
+pred_qda_test <- predict(qda_model, data_test[, -1301]) #predictions from qda model
+confusion_m_qda <- table("Reference" = data_test[, 1301], "Predicted" = pred_qda_test$class)
+
+accuracy_qda <- sum(diag(confusion_m_qda)) / sum(confusion_m_qda)  # calculate accuracy
+percentage_accuracy <- accuracy_qda * 100
+
+print(paste("Percentage Accuracy for QDA:", percentage_accuracy, "%")) #output percentage accuracy
+
+```
+
+```{r}
+roc_curve_lda <- roc(data_test$sentiment, as.numeric(pred_lda_test$class)) # roc curve
+pred_lda_test$class <- as.numeric(pred_lda_test$class == 1) #rename sentiment component
+
+plot(roc_curve_lda, main = "ROC Curve for LDA", col = "blue", lwd = 2)
+
+abline(a = 0, b = 1, col = "gray", lwd = 2, lty = 2) #reference line
+
+auc_value_lda <- auc(roc_curve_lda)
+print(paste("AUC:", auc_value_lda))
+
+roc_curve_qda <- roc(data_test$sentiment, as.numeric(pred_qda_test$class)) # roc curve
+pred_qda_test$class <- as.numeric(pred_qda_test$class == 1) #rename sentiment component
+
+# Plot ROC curve
+plot(roc_curve_qda, main = "ROC Curve for QDA", col = "red", lwd = 2)
+
+abline(a = 0, b = 1, col = "gray", lwd = 2, lty = 2) #reference line
+
+auc_value_qda <- auc(roc_curve_qda)
+print(paste("AUC:", auc_value_qda))
+```
+
+```{r}
+#random forest 
+#library(caTools) 
+#library(randomForest) 
+
+# Fitting Random Forest to the train dataset 
+#set.seed(1)  # Setting seed 
+#classifier_RF = randomForest(x = data_train[, -1301], 
+                           #  y = as.factor(data_train$sentiment), 
+                            # ntree = 100)
+#classifier_RF 
+
+# Predicting the Test set results 
+#y_pred = predict(classifier_RF, newdata = test[-5]) 
+# Confusion Matrix 
+#confusion_mtx = table(test[, 5], y_pred)
+#confusion_mtx 
+# Variable importance 
+#importance(classifier_RF) 
+# Variable importance plot 
+#varImpPlot(classifier_RF) 
+```
+
